@@ -1,12 +1,11 @@
 
-import boto3
 import json
 import os
+import hashlib
+from urllib.parse import urlparse
 
 print('Loading function')
-dynamo = boto3.client('dynamodb')
-table_name = os.environ['TABLE_NAME']
-
+salt = os.environ['IMAGE_SALT']
 
 def respond(err, res=None):
     return {
@@ -17,30 +16,40 @@ def respond(err, res=None):
         },
     }
 
+def get_signature(url):
+    salted_url = salt + url
+    encoded = salted_url.encode('utf-8')
+    signature = hashlib.md5(encoded)
+    return signature.hexdigest()
+
+def extract_signable_path(url):
+    url_parsed = urlparse(url)
+    if (url_parsed.query):
+        return url_parsed.path + '?' + url_parsed.query
+    else:
+        return url_parsed.path
+
+def add_signature(url, signature):
+    if "?" in url:
+        return url + "&s=" + signature
+    else:
+        return url + "?s=" + signature
 
 def lambda_handler(event, context):
-    '''Demonstrates a simple HTTP endpoint using API Gateway. You have full
-    access to the request and response payload, including headers and
-    status code.
+    ''' Take the url parameter sign it, and return a helpful response'''
 
-    TableName provided by template.yaml.
-
-    To scan a DynamoDB table, make a GET request with optional query string parameter.
-    To put, update, or delete an item, make a POST, PUT, or DELETE request respectively,
-    passing in the payload to the DynamoDB API as a JSON body.
-    '''
-    print("Received event: " + json.dumps(event, indent=2))
-
-    operations = {
-        'DELETE': lambda dynamo, x: dynamo.delete_item(TableName=table_name, **x),
-        'GET': lambda dynamo, x: dynamo.scan(TableName=table_name, **x) if x else dynamo.scan(TableName=table_name),
-        'POST': lambda dynamo, x: dynamo.put_item(TableName=table_name, **x),
-        'PUT': lambda dynamo, x: dynamo.update_item(TableName=table_name, **x),
-    }
 
     operation = event['httpMethod']
-    if operation in operations:
-        payload = event['queryStringParameters'] if operation == 'GET' else json.loads(event['body'])
-        return respond(None, operations[operation](dynamo, payload))
+    payload = event['queryStringParameters']
+    if payload['url']:
+        url = payload['url']
+        bit_to_sign = extract_signable_path(url)
+        signature = get_signature(bit_to_sign)
+        response = {
+            'originalUrl': url,
+            'signature': signature,
+            'signed_url': add_signature(bit_to_sign, signature)
+        }
+        return respond(None, response)
     else:
-        return respond(ValueError('Unsupported method "{}"'.format(operation)))
+        return respond(None, "missing url parameter")
