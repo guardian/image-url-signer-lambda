@@ -1,24 +1,29 @@
 Description: A lambda and API gateway endpoint for signing image urls
 Parameters:
-  ImageSaltParameter:
+  ImageSalt:
+    Type: String
+  Domain:
+    Type: String
+    Default: 'image-url-signer.gu-web.net'
+  DomainCertificateArn:
     Type: String
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Resources:
-  microservicehttpendpointpython3:
+  ImageUrlSignerLambda:
     Type: AWS::Serverless::Function
     Properties:
-      Description: A simple backend (read/write to DynamoDB) with a RESTful API endpoint using Amazon API Gateway.
-      MemorySize: 512
+      Description: A function to generate signed image urls on i.guim.co.uk
+      MemorySize: 128
       Environment:
         Variables:
           IMAGE_SALT:
-            Ref: ImageSaltParameter 
+            Ref: ImageSalt
       Handler: lambda_function.lambda_handler
       Timeout: 10
       CodeUri:
-        Bucket: awsserverlessrepo-changesets-18ssd5swmy82n
-        Key: 642631414762:philip.mcmahon-c2e6d051-3006-4064-a082-545166e77055
+        Bucket: aws-frontend-artifacts
+        Key: lambda/image-url-signer/image_url_signer.zip
       Runtime: python3.6
       Events:
         Api1:
@@ -32,6 +37,7 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       __MANAGE_SWAGGER: true
+      StageName: PROD
       DefinitionBody:
         info:
           version: '1.0'
@@ -44,7 +50,40 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${microservicehttpendpointpython3.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ImageUrlSignerLambda.Arn}/invocations
               responses: {}
         swagger: '2.0'
-      StageName: Prod
+  ApiDomainName:
+    Type: 'AWS::ApiGateway::DomainName'
+    Properties:
+      DomainName: !Ref Domain
+      CertificateArn: !Ref DomainCertificateArn
+  ApiBasePathMapping:
+    Type: 'AWS::ApiGateway::BasePathMapping'
+    Properties:
+      DomainName: !Ref Domain
+      RestApiId: !Ref ServerlessRestApi
+      Stage: Prod
+  InteractivesApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Description: API key for the interactives team to sign image urls
+      Enabled: True
+      Name: interactives-image-url-signer-key
+      StageKeys:
+        - RestApiId: !Ref ServerlessRestApi
+          StageName: Prod
+  InteractivesUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      ApiStages:
+      - ApiId: !Ref 'ServerlessRestApi'
+        Stage: Prod
+      Description: Interactives usage plan
+      Quota:
+        Limit: 1000
+        Period: MONTH
+      Throttle:
+        BurstLimit: 200
+        RateLimit: 100
+      UsagePlanName: Interactives key usage plan for image-url-signer

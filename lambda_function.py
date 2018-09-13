@@ -3,9 +3,9 @@ import json
 import os
 import hashlib
 from urllib.parse import urlparse
+import re
 
 print('Loading function')
-salt = os.environ['IMAGE_SALT']
 
 def respond(err, res=None):
     return {
@@ -16,7 +16,7 @@ def respond(err, res=None):
         },
     }
 
-def get_signature(url):
+def get_signature(url, salt):
     salted_url = salt + url
     encoded = salted_url.encode('utf-8')
     signature = hashlib.md5(encoded)
@@ -35,20 +35,44 @@ def add_signature(url, signature):
     else:
         return url + "?s=" + signature
 
+def get_source(url):
+    url_parsed = urlparse(url)
+    split = re.search('(media|static|uploads|sport).guim.co.uk', url_parsed.hostname)
+    if split:
+        return split.group(1)
+    else:
+        return 'media'
+
+def generate_iguim_url(signed_path, source):
+    return f'https://i.guim.co.uk/img/{source}{signed_path}'
+
+def add_quality_parameter(path):
+    if "quality=" in path:
+        return path
+    elif "?" in path:
+        return f'{path}&quality=85'
+    else:
+        return f'{path}?quality=85'
+
+
 def lambda_handler(event, context):
     ''' Take the url parameter sign it, and return a helpful response'''
-
-
+    salt = os.environ['IMAGE_SALT']
     operation = event['httpMethod']
     payload = event['queryStringParameters']
+
     if payload['url']:
         url = payload['url']
-        bit_to_sign = extract_signable_path(url)
-        signature = get_signature(bit_to_sign)
+        path_with_query = extract_signable_path(url)
+        path_with_quality = add_quality_parameter(path_with_query)
+        signature = get_signature(path_with_quality, salt)
+        signed_path = add_signature(path_with_quality, signature)
+        signed_url = generate_iguim_url(signed_path, get_source(url))
         response = {
             'originalUrl': url,
             'signature': signature,
-            'signed_url': add_signature(bit_to_sign, signature)
+            'signed_path': signed_path,
+            'iguim_url': signed_url
         }
         return respond(None, response)
     else:
