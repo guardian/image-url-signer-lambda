@@ -13,6 +13,9 @@ def respond(err, res=None):
         'body': err.message if err else json.dumps(res),
         'headers': {
             'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'access-control-allow-headers': '*',
+            'access-control-allow-methods': 'GET,OPTIONS'
         },
     }
 
