@@ -1,12 +1,10 @@
-console.log("hahahaahah");
-
 document.addEventListener('DOMContentLoaded',function() {
     document.getElementById('url-input').oninput=changeEventHandler;
 },false);
 
 function changeEventHandler(event) {
     const imageSignerUrl = `${imageSignerPath}?url=${event.target.value}`;
-    console.log(imageSignerUrl);
+    console.log("Request url: ", imageSignerUrl);
     fetch(imageSignerUrl, {
         headers: {"x-api-key": apiKey}
     }).then(resp => resp.json()).then(json => {
