@@ -87,3 +87,9 @@ Resources:
         BurstLimit: 200
         RateLimit: 100
       UsagePlanName: Interactives key usage plan for image-url-signer
+  UIBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: image-url-signer
+      WebsiteConfiguration:
+        IndexDocument: url_sign.html

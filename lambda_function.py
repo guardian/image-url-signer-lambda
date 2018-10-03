@@ -3,6 +3,7 @@ import json
 import os
 import hashlib
 from urllib.parse import urlparse
+import base64
 import re
 
 print('Loading function')
@@ -27,7 +28,7 @@ def get_signature(url, salt):
 
 def extract_signable_path(url):
     url_parsed = urlparse(url)
-    if (url_parsed.query):
+    if url_parsed.query:
         return url_parsed.path + '?' + url_parsed.query
     else:
         return url_parsed.path
@@ -57,6 +58,25 @@ def add_quality_parameter(path):
     else:
         return f'{path}?quality=85'
 
+def sign_url(url, salt):
+    path_with_query = extract_signable_path(url)
+    path_with_quality = add_quality_parameter(path_with_query)
+    signature = get_signature(path_with_quality, salt)
+    signed_path = add_signature(path_with_quality, signature)
+    signed_url = generate_iguim_url(signed_path, get_source(url))
+    return {
+        'originalUrl': url,
+        'signature': signature,
+        'signed_path': signed_path,
+        'iguim_url': signed_url
+    }
+
+def decode_url(url):
+    if url.startswith("http"):
+        return url
+    else:
+        # assume url is base64 encoded
+        return base64.b64decode(url).decode("utf-8")
 
 def lambda_handler(event, context):
     ''' Take the url parameter sign it, and return a helpful response'''
@@ -66,17 +86,7 @@ def lambda_handler(event, context):
 
     if payload['url']:
         url = payload['url']
-        path_with_query = extract_signable_path(url)
-        path_with_quality = add_quality_parameter(path_with_query)
-        signature = get_signature(path_with_quality, salt)
-        signed_path = add_signature(path_with_quality, signature)
-        signed_url = generate_iguim_url(signed_path, get_source(url))
-        response = {
-            'originalUrl': url,
-            'signature': signature,
-            'signed_path': signed_path,
-            'iguim_url': signed_url
-        }
+        response = sign_url(decode_url(url), salt)
         return respond(None, response)
     else:
         return respond(None, "missing url parameter")

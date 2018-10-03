@@ -1,11 +1,12 @@
 import unittest, datetime
-from lambda_function import get_signature, extract_signable_path, add_signature, get_source, generate_iguim_url, add_quality_parameter
+from lambda_function import get_signature, extract_signable_path, add_signature, get_source, generate_iguim_url, add_quality_parameter, sign_url, decode_url
 
 class TestImageFunctions(unittest.TestCase):
 
     def setUp(self):
         self.validUrl = "http://media.guim.co.uk/67222cbde87dc147dd34041c2e8692b81f24f546/0_0_1204_1181/500.jpg"
         self.validUrlQs = "http://media.guim.co.uk/67222cbde87dc147dd34041c2e8692b81f24f546/0_0_1204_1181/500.jpg?width=300"
+        self.urlFullQs = "http://media.guim.co.uk/67222cbde87dc147dd34041c2e8692b81f24f546/0_0_1204_1181/500.jpg?width=300&quality=50&height=100"
 
     def test_get_signature(self):
         self.assertEqual(get_signature("teststring", "testsalt"), "a3d07d9dc9ab9da4a88cad2694ee1184")
@@ -39,8 +40,13 @@ class TestImageFunctions(unittest.TestCase):
         noq = add_quality_parameter("/lol/haha")
         self.assertEqual(noq, "/lol/haha?quality=85")
 
+    def test_sign_url(self):
+        qs_response = sign_url(self.urlFullQs, "haha")
+        self.assertEqual(qs_response['signature'], "c0b3e8200cdc0f0c1140b08a5f7849a0")
 
-
+    def test_decode_url(self):
+        self.assertEqual("http://lol.com", decode_url("http://lol.com"))
+        self.assertEqual("http://lol.com", decode_url("aHR0cDovL2xvbC5jb20="))
 
 
 if __name__ == '__main__':
