@@ -1,0 +1,36 @@
+<html>
+<head>
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</head>
+<body>
+<h1>Image Url Signer</h1>
+<p>
+This tool generates urls for the Fastly IO image resizer we use at the guardian. For input, it takes a media.guim url
+which can be obtained by uploading an image to the grid and cropping it (then right click, get image address), and converts
+it into an i.guim url which has gone through the resizer.</p>
+
+<p>The advantage of using the resizer is that images are smaller and you can request an exact width. There's quite a bit of
+other functionality available - see https://docs.fastly.com/api/imageopto/ for the full API reference.</p>
+
+<p>The reason this tool needs to exist is that to prevent denial of service attacks we sign the image URLs that use the resizer to
+    prevent a potential attacker e.g. requesting the same image in 200 different widths.</p>
+
+<p>To use the resizer, paste your media.guim url into the box below, together width any parameters you'd like. For example,
+this image url: https://media.guim.co.uk/273bca7a4a3d0a38886ea9229f7a87a6d63d723c/608_1843_5584_5584/master/5584.jpg can
+be written like this:<p>
+
+https://media.guim.co.uk/273bca7a4a3d0a38886ea9229f7a87a6d63d723c/608_1843_5584_5584/master/5584.jpg?width=500&height=200&quality=20
+
+<p>to get an image with width 500, height 200 and quality 20. If you don't specify a quality the tool will default to quality=85
+which is what we use for most images on the website.<p>
+
+
+<p></p>
+<input type="text" id="url-input" placeholder="https://media.guim.co.uk/6129a0c8bc20858944c13040c16e5b18faab6694/0_0_1800_1013/1800.jpg?width=<DESIRED_WIDTH>" size="200">
+<br>
+<span id="signed-url"></span>
+<br>
+<img id="image-preview" src="test.jpg">
+</body>
+</html>

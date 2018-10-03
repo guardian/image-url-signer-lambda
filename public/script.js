@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded',function() {
 },false);
 
 function changeEventHandler(event) {
-    const imageSignerUrl = `${imageSignerPath}?url=${event.target.value}`;
+    const imageSignerUrl = `${imageSignerPath}?url=${btoa(event.target.value)}`;
     console.log("Request url: ", imageSignerUrl);
     fetch(imageSignerUrl, {
         headers: {"x-api-key": apiKey}
