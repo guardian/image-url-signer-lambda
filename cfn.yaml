@@ -2,6 +2,7 @@ Description: A lambda and API gateway endpoint for signing image urls
 Parameters:
   ImageSalt:
     Type: String
+    NoEcho: true
   Domain:
     Type: String
     Default: 'image-url-signer.gu-web.net'
