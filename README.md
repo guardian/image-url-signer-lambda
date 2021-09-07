@@ -19,3 +19,10 @@ const resizedUrl = fetch(imageResizerUrl, {
 ```
 
 For a full list of features available in Fastly IO see the API documentation [here](https://docs.fastly.com/api/imageopto/).
+
+# Notes
+This lambda does not have CI setup, a manual deploy would be required if any updates are needed. The reason for this is that (we believe) this lambda can soon be deprecated:
+- An [image signer service](https://github.com/guardian/image-url-signing-service) exists. That service uses pan domain authentication, making access more remote-friendly. 
+- While the image signer service performs the same functionality as this lambda, it does not yet have a UI which is required for the users.
+- When the image signer service has a UI created, the users (currently believed to be the Visuals team) will be informed and migrated across.
+- After this point, this lambda could be deprecated.
